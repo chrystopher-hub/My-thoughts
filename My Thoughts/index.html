@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Thoughts</title>
+<style>
+:root{--bg:#faf7f2;--card:#fff;--text:#2b2a33;--muted:#7b7887;--accent:#5b4fcf;--line:#e8e3da;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15141a;--card:#1f1e27;--text:#ecebf2;--muted:#9a97a8;--accent:#8f85ff;--line:#2d2c38}}
+:root[data-theme="dark"]{--bg:#15141a;--card:#1f1e27;--text:#ecebf2;--muted:#9a97a8;--accent:#8f85ff;--line:#2d2c38}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Georgia,'Times New Roman',serif;line-height:1.5}
+main{max-width:640px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:28px;margin:0 0 4px}
+.sub{color:var(--muted);font-family:system-ui,sans-serif;font-size:14px;margin:0 0 20px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+textarea{width:100%;min-height:130px;border:0;outline:0;resize:vertical;background:transparent;color:var(--text);font:inherit;font-size:17px}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap}
+button{font-family:system-ui,sans-serif;font-size:15px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:10px 18px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.status{font-family:system-ui,sans-serif;font-size:13px;color:var(--muted);min-height:18px;margin:8px 4px}
+h2{font-size:18px;margin:28px 0 10px}
+.entry{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.entry time{font-family:system-ui,sans-serif;font-size:12px;color:var(--muted)}
+.entry p{margin:6px 0 8px;white-space:pre-wrap;word-wrap:break-word}
+.entry button{font-size:12px;padding:5px 12px;color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:20px;font-family:system-ui,sans-serif}
+</style>
+</head>
+<body>
+<main>
+<h1>My Thoughts</h1>
+<p class="sub">Write what's on your mind. Entries are saved privately on this device.</p>
+<div class="box">
+<textarea id="t" placeholder="What's on your mind?"></textarea>
+<div class="row">
+<span></span>
+<button id="save" class="primary" type="button">Save thought</button>
+</div>
+</div>
+<div class="status" id="st"></div>
+<div class="row" style="margin-top:28px"><h2 style="margin:0">Past thoughts</h2>
+<span><button id="exp" type="button">Export backup</button> <button id="imp" type="button">Import</button><input id="file" type="file" accept=".json,application/json" hidden></span></div>
+<div style="height:10px"></div>
+<div id="list"></div>
+</main>
+<script>
+var KEY='thoughts-v1',items=[];
+function load(){try{items=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){items=[]}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(items));return true}catch(e){return false}}
+function say(m){document.getElementById('st').textContent=m}
+function render(){
+ var l=document.getElementById('list');l.innerHTML='';
+ if(!items.length){l.innerHTML='<div class="empty">Nothing saved yet.</div>';return}
+ items.forEach(function(it){
+  var d=document.createElement('div');d.className='entry';
+  var tm=document.createElement('time');tm.textContent=new Date(it.t).toLocaleString([], {dateStyle:'medium',timeStyle:'short'});
+  var p=document.createElement('p');p.textContent=it.x;
+  var b=document.createElement('button');b.textContent='Delete';
+  b.onclick=function(){items=items.filter(function(i){return i.t!==it.t});persist();render()};
+  d.append(tm,p,b);l.appendChild(d);
+ });
+}
+document.getElementById('save').onclick=function(){
+ var ta=document.getElementById('t'),v=ta.value.trim();
+ if(!v){say('Write something first.');return}
+ items.unshift({t:Date.now(),x:v});
+ say(persist()?'Saved.':'Saved for this session only (storage unavailable).');
+ ta.value='';render();
+};
+document.getElementById('exp').onclick=function(){
+ if(!items.length){say('Nothing to export yet.');return}
+ try{
+  var blob=new Blob([JSON.stringify(items,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='my-thoughts-backup.json';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},1000);
+  say('Backup downloaded. Keep it somewhere safe.');
+ }catch(e){say('Could not create the backup.')}
+};
+document.getElementById('imp').onclick=function(){document.getElementById('file').click()};
+document.getElementById('file').onchange=function(e){
+ var f=e.target.files[0];if(!f)return;
+ var r=new FileReader();
+ r.onload=function(){
+  try{
+   var arr=JSON.parse(r.result),have={},n=0;
+   if(!Array.isArray(arr))throw 0;
+   items.forEach(function(i){have[i.t]=1});
+   arr.forEach(function(i){if(i&&typeof i.x==='string'&&typeof i.t==='number'&&!have[i.t]){items.push({t:i.t,x:i.x});have[i.t]=1;n++}});
+   items.sort(function(a,b){return b.t-a.t});persist();render();
+   say(n?('Imported '+n+' thought'+(n>1?'s':'')+'.'):'No new thoughts found in that file.');
+  }catch(err){say('That file is not a valid backup.')}
+  e.target.value='';
+ };
+ r.readAsText(f);
+};
+load();render();
+</script>
+</body>
+</html>
