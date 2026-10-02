@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>My Thoughts</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#5b4fcf">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
 :root{--bg:#faf7f2;--card:#fff;--text:#2b2a33;--muted:#7b7887;--accent:#5b4fcf;--line:#e8e3da;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15141a;--card:#1f1e27;--text:#ecebf2;--muted:#9a97a8;--accent:#8f85ff;--line:#2d2c38}}
@@ -96,6 +101,7 @@ document.getElementById('file').onchange=function(e){
  r.readAsText(f);
 };
 load();render();
+if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
 </script>
 </body>
 </html>
